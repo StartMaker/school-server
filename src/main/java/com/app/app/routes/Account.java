@@ -1,26 +1,18 @@
 package com.app.app.routes;
 
-import org.springframework.boot.*;
+import com.alibaba.fastjson.JSON;
+import com.app.app.model.Response.GiveClient;
 import org.springframework.boot.autoconfigure.*;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @EnableAutoConfiguration
-@RequestMapping("/")
+@RequestMapping("/account")
 public class Account {
 
-    @PostMapping("/login")
+    @GetMapping("/login")
     String login() {
-        return "Hello World!";
+        GiveClient giveClient = new GiveClient();
+        return JSON.toJSONString(giveClient);
     }
-
-    @GetMapping("/home")
-    String home1() {
-        return "hello word";
-    }
-
-    public static void main(String[] args) {
-        SpringApplication.run(Account.class, args);
-    }
-
 }
