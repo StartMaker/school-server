@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
@@ -59,6 +60,16 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
         httpSecurity
 //                //token的验证方式不需要开启csrf的防护
                 .csrf().disable()
+                .authorizeRequests()
+                    .antMatchers(HttpMethod.OPTIONS).permitAll()
+                    .antMatchers(
+                            "/",
+                            "/*.html",
+                            "/favicon.ico",
+                            "/**/*.html",
+                            "/**/*.css",
+                            "/**/*.js"
+                    ).permitAll()
 //                .exceptionHandling()
 ////                .authenticationEntryPoint(unauthorizedHandler)
 //                .and()
@@ -67,17 +78,10 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
 //                .and()
 //                .authorizeRequests()
 //                .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-//                .antMatchers(
-//                        "/",
-//                        "/*.html",
-//                        "/favicon.ico",
-//                        "/**/*.html",
-//                        "/**/*.css",
-//                        "/**/*.js"
-//                ).permitAll()
+
 //                .antMatchers("/images/**").permitAll()
 //                .anyRequest().authenticated()
-//                .and()
+                .and()
                 .headers().cacheControl();
 //
 //        //配置自己的验证过滤器
