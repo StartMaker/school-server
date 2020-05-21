@@ -4,8 +4,10 @@ import lombok.Data;
 
 @Data
 public class Message {
-    int receiver;
-    int sender;
-    String message = "";
-    String date = "";
+    public int receiver;
+    public int sender;
+    public String message;
+    public String date;
+    public boolean read = false;
+    public String roomId;
 }

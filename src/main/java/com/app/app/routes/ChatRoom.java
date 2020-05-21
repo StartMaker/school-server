@@ -1,11 +1,20 @@
 package com.app.app.routes;
 
+import com.alibaba.fastjson.JSON;
+import com.app.app.controll.SqlMessage;
+import com.app.app.form.chat.Message;
+import com.sun.istack.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
 import javax.websocket.*;
 import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @ServerEndpoint(value = "/chat")
@@ -19,11 +28,24 @@ public class ChatRoom {
     private Session session;
 
     //接收roomId
-    private String roomId = "";
+    private String roomId;
+
+    private Message newMessage = new Message();
 
     public int sender;
     public int receiver;
 
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+    /*
+    * static和@Autowired 这样写是为了解决@Autowired在websocket中无法自动注入
+    * */
+    private static SqlMessage sqlMessage;
+
+    @Autowired
+    public void setSqlMessage(SqlMessage sqlMessage) {
+        ChatRoom.sqlMessage = sqlMessage;
+    }
 
     /**
      * 连接建立成功调用的方法
@@ -33,10 +55,12 @@ public class ChatRoom {
         initParams(session.getQueryString());
         this.session = session;
         addSocketServer2Map(this);
+        List<Message> message = sqlMessage.findForUnRead(this.roomId);
         try {
-            sendMessage("ok");
+            sendMessage(JSON.toJSONString(message));
+//            sendMessage("ok");
         } catch (IOException e) {
-
+            System.out.println(e);
         }
     }
 
@@ -68,8 +92,11 @@ public class ChatRoom {
     public void onMessage(String message, Session session) {
         //群发消息
         String msg = filterMessage(message);
+        newMessage.date = sdf.format(new Date());
+        newMessage.message = message;
+        System.out.println(JSON.toJSONString(newMessage));
         if (msg != null) {
-            sendInfo(msg, this);
+            sendInfo(JSON.toJSONString(newMessage), this);
         }
     }
 
@@ -102,7 +129,7 @@ public class ChatRoom {
             }
         }
         catch (IOException e) {
-
+            System.out.println(e);
         }
     }
 
@@ -122,15 +149,16 @@ public class ChatRoom {
             String[] itemArr = item.split("=");
             switch (itemArr[0]) {
                 case "sender":
-                    this.sender = Integer.parseInt(itemArr[1]);
+                    sender = Integer.parseInt(itemArr[1]);
                     break;
                 case "receiver":
-                    this.receiver = Integer.parseInt(itemArr[1]);
+                    receiver = Integer.parseInt(itemArr[1]);
                     break;
             }
         }
-        this.roomId = this.sender > this.receiver ? this.receiver+"&"+this.sender : this.sender+"&"+this.receiver;
-        System.out.println(this.roomId+"--"+this.receiver+"--"+this.sender);
+        newMessage.sender = sender;
+        newMessage.receiver = receiver;
+        roomId = sender > receiver ? receiver+"&"+sender : sender+"&"+receiver;
     }
 
     /**
@@ -139,4 +167,5 @@ public class ChatRoom {
     public void sendMessage(String message) throws IOException {
         this.session.getAsyncRemote().sendText(message);
     }
+
 }

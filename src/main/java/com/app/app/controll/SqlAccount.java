@@ -33,7 +33,6 @@ public class SqlAccount {
             return molResponse.success(null);
         }
         catch (DataAccessException e) {
-            System.out.println(e.getCause().getLocalizedMessage().indexOf("name_UNIQUE"));
             if (e.getCause().getLocalizedMessage().indexOf("name_UNIQUE") > 0) {
                 return molResponse.fail("账号名已存在");
             }
@@ -46,7 +45,6 @@ public class SqlAccount {
 
     public MolResponse update(Params params) {
         String sql = "UPDATE `account` SET `name` = ?, `password` = ?, `role` = ?, `phone` = ? WHERE ( `id` = ? )";
-        System.out.println(params);
         try {
             boolean bolUpdate = jdbcTemplate.update(sql, params.name, params.password, params.role, params.phone, params.id) > 0;
             if (bolUpdate) {
