@@ -15,7 +15,7 @@ import javax.validation.Valid;
 @EnableAutoConfiguration
 @RequestMapping("/account")
 @ResponseBody
-public class Account {
+public class AccountRoute {
 
     @Autowired
     private SqlAccount sqlAccount;

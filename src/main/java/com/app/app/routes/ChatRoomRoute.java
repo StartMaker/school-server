@@ -3,25 +3,23 @@ package com.app.app.routes;
 import com.alibaba.fastjson.JSON;
 import com.app.app.controll.SqlMessage;
 import com.app.app.form.chat.Message;
-import com.sun.istack.Nullable;
+import com.app.app.model.MolResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.websocket.*;
 import javax.websocket.server.ServerEndpoint;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @ServerEndpoint(value = "/chat")
 @Component
-public class ChatRoom {
+public class ChatRoomRoute {
 
-    private static ConcurrentHashMap<String, List<ChatRoom>> webSocketMap =
+    private static ConcurrentHashMap<String, List<ChatRoomRoute>> webSocketMap =
             new ConcurrentHashMap<>(3);
 
     //与某个客户端的连接会话，需要通过它来给客户端发送数据
@@ -29,13 +27,13 @@ public class ChatRoom {
 
     //接收roomId
     private String roomId;
-
     private Message newMessage = new Message();
+    private MolResponse molResponse = new MolResponse();
 
     public int sender;
     public int receiver;
 
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     /*
     * static和@Autowired 这样写是为了解决@Autowired在websocket中无法自动注入
@@ -44,7 +42,7 @@ public class ChatRoom {
 
     @Autowired
     public void setSqlMessage(SqlMessage sqlMessage) {
-        ChatRoom.sqlMessage = sqlMessage;
+        ChatRoomRoute.sqlMessage = sqlMessage;
     }
 
     /**
@@ -55,13 +53,7 @@ public class ChatRoom {
         initParams(session.getQueryString());
         this.session = session;
         addSocketServer2Map(this);
-        List<Message> message = sqlMessage.findForUnRead(this.roomId);
-        try {
-            sendMessage(JSON.toJSONString(message));
-//            sendMessage("ok");
-        } catch (IOException e) {
-            System.out.println(e);
-        }
+        sendMessage(JSON.toJSONString(sqlMessage.findForUnRead(this.roomId)));
     }
 
     /**
@@ -69,9 +61,9 @@ public class ChatRoom {
      */
     @OnClose
     public void onClose() {
-        List<ChatRoom> wssList = webSocketMap.get(roomId);
+        List<ChatRoomRoute> wssList = webSocketMap.get(roomId);
         if (wssList != null) {
-            for (ChatRoom item : wssList) {
+            for (ChatRoomRoute item : wssList) {
                 if (item.session.getId().equals(session.getId())) {
                     wssList.remove(item);
                     if (wssList.isEmpty()) {
@@ -94,9 +86,8 @@ public class ChatRoom {
         String msg = filterMessage(message);
         newMessage.date = sdf.format(new Date());
         newMessage.message = message;
-        System.out.println(JSON.toJSONString(newMessage));
         if (msg != null) {
-            sendInfo(JSON.toJSONString(newMessage), this);
+            sendInfo(JSON.toJSONString(sqlMessage.insert(newMessage, roomId)), this);
         }
     }
 
@@ -118,28 +109,19 @@ public class ChatRoom {
     /**
      * 群发自定义消息
      */
-    public static void sendInfo(String message, ChatRoom previousRoom) {
+    public static void sendInfo(String message, ChatRoomRoute previousRoom) {
         if (previousRoom.roomId == null || previousRoom.roomId.isEmpty() || previousRoom.session == null) return;
-        List<ChatRoom> wssList = webSocketMap.get(previousRoom.roomId);
-        try {
-            for (ChatRoom item : wssList) {
-                if (previousRoom.sender != item.sender) {
-                    item.sendMessage(message);
-                }
+        List<ChatRoomRoute> wssList = webSocketMap.get(previousRoom.roomId);
+        for (ChatRoomRoute item : wssList) {
+            if (previousRoom.sender != item.sender) {
+                item.sendMessage(message);
             }
-        }
-        catch (IOException e) {
-            System.out.println(e);
         }
     }
 
-    public static synchronized void addSocketServer2Map(ChatRoom wss) {
+    public static synchronized void addSocketServer2Map(ChatRoomRoute wss) {
         if (wss != null) {
-            List<ChatRoom> wssList = webSocketMap.get(wss.roomId);
-            if (wssList == null) {
-                wssList = new ArrayList<>(6);
-                webSocketMap.put(wss.roomId, wssList);
-            }
+            List<ChatRoomRoute> wssList = webSocketMap.computeIfAbsent(wss.roomId, k -> new ArrayList<>(6));
             wssList.add(wss);
         }
     }
@@ -158,14 +140,19 @@ public class ChatRoom {
         }
         newMessage.sender = sender;
         newMessage.receiver = receiver;
-        roomId = sender > receiver ? receiver+"&"+sender : sender+"&"+receiver;
+        roomId = sender > receiver ? receiver + "&" + sender : sender + "&" + receiver;
     }
 
     /**
      * 实现服务器主动发送消息
      */
-    public void sendMessage(String message) throws IOException {
-        this.session.getAsyncRemote().sendText(message);
+    public void sendMessage(String message) {
+        try {
+            this.session.getAsyncRemote().sendText(message);
+        }
+        catch (Exception e) {
+            this.session.getAsyncRemote().sendText(JSON.toJSONString(molResponse.fail("发送失败")));
+        }
     }
 
 }
