@@ -1,6 +1,5 @@
 package com.app.app.map;
 import com.app.app.form.chat.Message;
-import com.app.app.model.MolAccount;
 import lombok.Data;
 import org.springframework.jdbc.core.RowMapper;
 

@@ -1,7 +1,6 @@
 package com.app.app.form.chat;
 
 import lombok.Data;
-
 import javax.validation.constraints.NotNull;
 
 @Data

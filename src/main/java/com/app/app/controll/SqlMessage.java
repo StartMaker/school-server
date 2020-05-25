@@ -5,12 +5,8 @@ import com.app.app.map.MapMessage;
 import com.app.app.model.MolResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
-import java.util.Map;
 
 @Component
 public class SqlMessage {
@@ -18,10 +14,10 @@ public class SqlMessage {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private MolResponse molResponse;
+    private MolResponse molResponse = new MolResponse();
 
     public MolResponse findForUnRead (String roomId) {
-        String sql = "SELECT `date`, `message`, `read`, `sender`, `receiver` FROM `message` WHERE `roomId` = ? and `read` = false ORDER BY `date`;";
+        String sql = "SELECT `date`, `message`, `read`, `sender`, `receiver` FROM `message` WHERE `roomId` = ? and `read`=false ORDER BY `date`;";
         try {
             return molResponse.success(jdbcTemplate.query(sql, new MapMessage(), roomId));
         }
@@ -32,12 +28,12 @@ public class SqlMessage {
     }
 
     public MolResponse findForDate (String roomId, String date) {
-        String sql = "select * from `message` where `date`<? and `roomId`=? order by `date` limit 0,20";
+        String sql = "SELECT `date`, `message`, `read`, `sender`, `receiver` FROM `message` WHERE `roomId`=? AND `date`<? ORDER BY `date` LIMIT 0,20;";
         try {
-            return molResponse.success(jdbcTemplate.query(sql, new MapMessage(), date, roomId));
+            return molResponse.success(jdbcTemplate.query(sql, new MapMessage() ,roomId, date));
         }
         catch (DataAccessException e) {
-            return molResponse.fail("发送失败");
+            return molResponse.fail("获取失败");
         }
     }
 
